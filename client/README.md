@@ -1,4 +1,3 @@
-
 # Live Text Editor
 
 A collaborative real-time text editor with a VSCode-inspired interface. This project allows multiple users to edit text simultaneously within the same tabs, with authentication and role-based access.
@@ -8,7 +7,7 @@ A collaborative real-time text editor with a VSCode-inspired interface. This pro
 - **User Authentication**: Login with role-based access (User, Admin, Dummy)
 - **Real-time Collaboration**: Two users can edit text simultaneously in the same tab
 - **Tab Management**: Create, delete, and switch between tabs
-- **Draggable and Resizable Tabs**: Similar to VS Code's interface
+- **Draggable and Resizable Tabs**: Similar to VS Code's interface as well as put names to the tabs
 - **JWT Authentication**: Secure API endpoints and WebSockets
 - **Session Management**: Maintaining user sessions without database persistence
 - **Modern UI**: Dark theme inspired by code editors
@@ -16,13 +15,16 @@ A collaborative real-time text editor with a VSCode-inspired interface. This pro
 ## Tech Stack
 
 ### Frontend
+
 - React with Vite
 - Tailwind CSS for styling
 - Socket.IO client for real-time communication
 - React Router for navigation
 - ShadCN UI components
+  -Universe IO components and Aceternity UI
 
 ### Backend
+
 - Node.js with Express
 - Socket.IO for WebSockets
 - JWT for authentication

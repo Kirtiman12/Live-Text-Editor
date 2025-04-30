@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import FlipWords from "@/components/ui/Flipwords";
 
 const Login = () => {
   const { toast } = useToast();
@@ -77,9 +78,12 @@ const Login = () => {
     <div className="min-h-screen bg-[#060217] flex items-center justify-center p-4 bg-gradient-to-br from-[#000000a8] to-[#08031D] select-none">
       <Card className="w-full max-w-md bg-[#191C4E] border-[#3C3C3C] shadow-xl text-white">
         <CardHeader className="text-center pb-6">
-          <div className="text-5xl font-bold text-white font-Mauline flex justify-center items-center max-w-4xl h-full gap-12 ">
-            TexT{"  "}
-            Pulse
+          <div className=" flex justify-center items-center max-w-4xl h-full gap-12 ">
+            <FlipWords
+              words={["Text Pulse", "Pulse TexT"]}
+              duration={2000}
+              className="font-Mauline text-5xl font-bold text-white"
+            />
           </div>
         </CardHeader>
         <CardContent>

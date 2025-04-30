@@ -258,15 +258,15 @@ const Editor = () => {
     <div className="flex flex-col h-screen bg-[#08031D] text-white">
       <header className="h-[10%] md:h-[8%] border-b border-[08031D] p-3">
         <div className="flex justify-center items-center h-5/6">
-          <div className="w-[50%] flex justify-start items-center h-full">
-            <div className="flex scale-[0.5] translate-x-[-1rem] sm:translate-x-0 md:translate-x-0">
+          <div className="w-[60%] md:w-[50%] flex justify-start items-center h-full">
+            <div className="flex scale-[0.3] md:scale-[0.5] translate-x-[-2rem] md:translate-x-0">
               <Mainicon />
             </div>
-            <h1 className="text-xl md:text-4xl font-Mauline">
+            <h1 className="text-2xl md:text-4xl font-Mauline translate-x-[-3.5rem] md:translate-x-0">
               TexT {"  "} Pulse
             </h1>
           </div>
-          <div className="w-[50%] flex justify-end items-center gap-2 h-full">
+          <div className="w-[40%] md:w-[50%] flex justify-end items-center gap-2 h-full">
             <div className="text-sm md:text-base">
               <span className="hidden md:inline-block mr-2">Logged in as</span>
               <span className="font-bold">{role}</span>
