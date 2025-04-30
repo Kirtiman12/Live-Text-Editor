@@ -39,7 +39,7 @@ A collaborative real-time text editor with a VSCode-inspired interface. This pro
 cd backend
 
 # Install dependencies
-npm install
+npm install express
 
 # Start the server
 npm run dev
@@ -68,15 +68,17 @@ npm run dev
 ## Project Structure
 
 ```
-├── src/
-│   ├── components/            # React components
-│   ├── pages/                 # Page components
-│   ├── App.tsx                # Main application component
-│   └── main.tsx               # Entry point
 ├── backend/
 │   ├── server.js              # Express server and Socket.IO setup
 │   └── package.json           # Backend dependencies
 └── package.json               # Frontend dependencies
+
+├── client/
+    ├── src/
+│       ├── components/        # React components
+│   ├── pages/                 # Page components
+│   ├── App.tsx                # Main application component
+│   └── main.tsx               # Entry point
 ```
 
 ## Notes
