@@ -47,15 +47,21 @@ const Editor = () => {
     setRole(userRole);
     setUser(userId);
 
-    // Initialize socket connection
-    const socketInstance = io("http://localhost:5000", {
+    const BACKEND_URL =
+      process.env.NODE_ENV === "development"
+        ? window.location.hostname === "localhost"
+          ? "http://localhost:5000"
+          : "http://192.168.29.197:5000"
+        : "http://192.168.29.197:5000";
+
+    const socketInstance = io(BACKEND_URL, {
       auth: { token, userId, role: userRole },
     });
 
     socketInstance.on("connect", () => {
       setIsConnected(true);
       console.log("Connected to socket server");
-      socketInstance.emit("joinTab", { tabId: "1", userId });
+      socketInstance.emit("joinTab", { tabId: "1", userId, name: "Tab 1" });
     });
 
     socketInstance.on("connect_error", (error) => {
@@ -68,18 +74,43 @@ const Editor = () => {
     });
 
     socketInstance.on("tabContentUpdate", ({ tabId, content }) => {
+      console.log(`Received tabContentUpdate for tab ${tabId}:`, content);
       setTabs((prevTabs) =>
         prevTabs.map((tab) => (tab.id === tabId ? { ...tab, content } : tab))
       );
     });
 
     socketInstance.on("collaboratorsUpdate", ({ tabId, users }) => {
+      console.log(`Received collaboratorsUpdate for tab ${tabId}:`, users);
       setCollaborators((prev) => {
         const existing = prev.find((c) => c.tabId === tabId);
         if (existing) {
           return prev.map((c) => (c.tabId === tabId ? { ...c, users } : c));
         }
         return [...prev, { tabId, users }];
+      });
+    });
+
+    socketInstance.on("openTabsUpdate", ({ tabs }) => {
+      console.log("Received openTabsUpdate:", tabs);
+      setTabs((prevTabs) => {
+        const newTabs = [...prevTabs];
+        tabs.forEach(({ tabId, users, name }) => {
+          const existingTab = newTabs.find((tab) => tab.id === tabId);
+          if (!existingTab) {
+            newTabs.push({
+              id: tabId,
+              name: name || `Tab ${newTabs.length + 1}`,
+              content: "",
+            });
+          } else if (name && existingTab.name !== name) {
+            existingTab.name = name;
+          }
+        });
+        // Remove tabs not in activeTabs (e.g., closed tabs)
+        return newTabs.filter((tab) =>
+          tabs.some((t: { tabId: string }) => t.tabId === tab.id)
+        );
       });
     });
 
@@ -111,6 +142,7 @@ const Editor = () => {
       )
     );
     if (socket && isConnected) {
+      console.log(`Emitting updateTabContent for tab ${tabId}:`, newContent);
       socket.emit("updateTabContent", { tabId, content: newContent });
     }
   };
@@ -132,24 +164,79 @@ const Editor = () => {
     ]);
     setActiveTab(newTabId);
     if (socket && isConnected) {
-      socket.emit("joinTab", { tabId: newTabId, userId: user });
+      console.log(`Emitting joinTab for new tab ${newTabId}`);
+      socket.emit("joinTab", {
+        tabId: newTabId,
+        userId: user,
+        name: newTabName,
+      });
     }
   };
 
   const handleCloseTab = (tabId: string) => {
     if (tabs.length === 1) return;
     if (socket && isConnected) {
-      socket.emit("leaveTab", { tabId, userId: user });
+      console.log(`Emitting closeTab for tab ${tabId}`);
+      socket.emit("closeTab", { tabId, userId: user });
     }
-    setTabs((prevTabs) => prevTabs.filter((tab) => tab.id !== tabId));
+    setTabs((prevTabs) => {
+      const remainingTabs = prevTabs.filter((tab) => tab.id !== tabId);
+      return remainingTabs;
+    });
     if (activeTab === tabId) {
       const remainingTabs = tabs.filter((tab) => tab.id !== tabId);
       setActiveTab(remainingTabs[0].id);
     }
   };
 
+  const handleTabClick = (tabId: string) => {
+    if (tabId !== activeTab) {
+      if (socket && isConnected) {
+        console.log(`Emitting leaveTab for tab ${activeTab}`);
+        socket.emit("leaveTab", { tabId: activeTab, userId: user });
+        console.log(`Emitting joinTab for tab ${tabId}`);
+        socket.emit("joinTab", {
+          tabId,
+          userId: user,
+          name: tabs.find((tab) => tab.id === tabId)?.name || `Tab ${tabId}`,
+        });
+      }
+      setActiveTab(tabId);
+    }
+  };
+
+  const handleTabRename = (tabId: string, newName: string) => {
+    setTabs((prevTabs) => {
+      const tabIndex = prevTabs.findIndex((tab) => tab.id === tabId);
+      if (tabIndex === -1) return prevTabs;
+      const newTabs = [...prevTabs];
+      const finalName = newName.trim() || `Tab ${tabIndex + 1}`;
+      newTabs[tabIndex] = { ...newTabs[tabIndex], name: finalName };
+      if (socket && isConnected) {
+        console.log(`Emitting renameTab for tab ${tabId}: ${finalName}`);
+        socket.emit("renameTab", { tabId, name: finalName, userId: user });
+      }
+      return newTabs;
+    });
+  };
+
   const handleTabsReorder = (newTabs: Tab[]) => {
     setTabs(newTabs);
+    if (socket && isConnected) {
+      newTabs.forEach((tab, index) => {
+        if (tab.name.startsWith("Tab ") && tab.name !== `Tab ${index + 1}`) {
+          const newName = `Tab ${index + 1}`;
+          console.log(
+            `Emitting renameTab for reordered tab ${tab.id}: ${newName}`
+          );
+          socket.emit("renameTab", {
+            tabId: tab.id,
+            name: newName,
+            userId: user,
+          });
+        }
+      });
+    }
   };
 
   const getActiveCollaborators = () => {
@@ -172,7 +259,7 @@ const Editor = () => {
       <header className="h-[10%] md:h-[8%] border-b border-[08031D] p-3">
         <div className="flex justify-center items-center h-5/6">
           <div className="w-[50%] flex justify-start items-center h-full">
-            <div className="flex scale-[0.5] ">
+            <div className="flex scale-[0.5] translate-x-[-1rem] sm:translate-x-0 md:translate-x-0">
               <Mainicon />
             </div>
             <h1 className="text-xl md:text-4xl font-Mauline">
@@ -182,7 +269,7 @@ const Editor = () => {
           <div className="w-[50%] flex justify-end items-center gap-2 h-full">
             <div className="text-sm md:text-base">
               <span className="hidden md:inline-block mr-2">Logged in as</span>
-              <span className="font-bold ">{role}</span>
+              <span className="font-bold">{role}</span>
             </div>
             <Button
               onClick={handleLogout}
@@ -200,9 +287,10 @@ const Editor = () => {
           <Tabs
             tabs={tabs}
             activeTab={activeTab}
-            onTabClick={setActiveTab}
+            onTabClick={handleTabClick}
             onTabClose={handleCloseTab}
             onTabsReorder={handleTabsReorder}
+            onTabRename={handleTabRename}
           />
           <Button
             onClick={handleCreateTab}
@@ -225,6 +313,7 @@ const Editor = () => {
                 onChange={(newContent) =>
                   handleContentChange(tab.id, newContent)
                 }
+                isActive={activeTab === tab.id}
               />
             </div>
           ))}

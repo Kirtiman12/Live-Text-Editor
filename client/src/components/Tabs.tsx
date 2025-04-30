@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 interface Tab {
   id: string;
@@ -14,6 +15,7 @@ interface TabsProps {
   onTabClick: (tabId: string) => void;
   onTabClose: (tabId: string) => void;
   onTabsReorder?: (newTabs: Tab[]) => void;
+  onTabRename: (tabId: string, newName: string) => void;
 }
 
 export const Tabs = ({
@@ -22,8 +24,11 @@ export const Tabs = ({
   onTabClick,
   onTabClose,
   onTabsReorder,
+  onTabRename,
 }: TabsProps) => {
   const [draggingTab, setDraggingTab] = useState<string | null>(null);
+  const [editingTabId, setEditingTabId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
   const tabRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [tabWidths, setTabWidths] = useState<Map<string, number>>(new Map());
@@ -60,9 +65,9 @@ export const Tabs = ({
   }, [tabs]);
 
   const handleDragStart = (e: React.DragEvent, tabId: string) => {
+    if (editingTabId) return; // Prevent dragging while editing
     setDraggingTab(tabId);
     e.dataTransfer.effectAllowed = "move";
-    // Add a ghost image that's transparent
     const img = new Image();
     img.src =
       "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
@@ -70,6 +75,7 @@ export const Tabs = ({
   };
 
   const handleDragOver = (e: React.DragEvent) => {
+    if (editingTabId) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
   };
@@ -84,8 +90,6 @@ export const Tabs = ({
         const newTabsOrder = [...tabs];
         const [removedTab] = newTabsOrder.splice(draggedTabIndex, 1);
         newTabsOrder.splice(targetTabIndex, 0, removedTab);
-
-        // Update tabs order through callback
         if (onTabsReorder) {
           onTabsReorder(newTabsOrder);
         }
@@ -106,6 +110,34 @@ export const Tabs = ({
     }
   };
 
+  const handleEditClick = (tab: Tab) => {
+    setEditingTabId(tab.id);
+    setEditName(tab.name);
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditName(e.target.value);
+  };
+
+  const handleNameSubmit = (tabId: string) => {
+    onTabRename(tabId, editName);
+    setEditingTabId(null);
+    setEditName("");
+  };
+
+  const handleNameBlur = (tabId: string) => {
+    handleNameSubmit(tabId);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, tabId: string) => {
+    if (e.key === "Enter") {
+      handleNameSubmit(tabId);
+    } else if (e.key === "Escape") {
+      setEditingTabId(null);
+      setEditName("");
+    }
+  };
+
   return (
     <div className="flex items-center flex-1 overflow-hidden">
       {showScrollButtons && (
@@ -119,7 +151,7 @@ export const Tabs = ({
 
       <div
         ref={tabsContainerRef}
-        className="flex overflow-x-auto scrollbar-hide flex-1  gap-2 pl-2"
+        className="flex overflow-x-auto scrollbar-hide flex-1 gap-2 pl-2"
       >
         {tabs.map((tab) => (
           <div
@@ -128,29 +160,51 @@ export const Tabs = ({
               if (el) tabRefs.current.set(tab.id, el);
             }}
             className={cn(
-              "flex items-center px-3 py-1.5 border-r border-[08031D] min-w-[100px] max-w-[200px]",
+              "flex items-center px-3 py-1.5 border-r border-[08031D]  min-w-[130px] max-w-[200px]",
               "cursor-pointer select-none transition-colors duration-200",
               draggingTab === tab.id ? "opacity-50" : "opacity-100",
               activeTab === tab.id
                 ? "bg-[#191C4E] rounded-sm text-white border-none"
                 : "bg-[#191C4E] rounded-sm text-gray-400 hover:text-gray-200 border-none"
             )}
-            draggable="true"
+            draggable={!editingTabId}
             onDragStart={(e) => handleDragStart(e, tab.id)}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, tab.id)}
             onClick={() => onTabClick(tab.id)}
           >
-            <div className="truncate flex-1">{tab.name}</div>
-            <button
-              className="ml-2 text-gray-500 hover:text-white focus:outline-none"
-              onClick={(e) => {
-                e.stopPropagation();
-                onTabClose(tab.id);
-              }}
-            >
-              <X size={14} />
-            </button>
+            {editingTabId === tab.id ? (
+              <Input
+                value={editName}
+                onChange={handleNameChange}
+                onBlur={() => handleNameBlur(tab.id)}
+                onKeyDown={(e) => handleKeyDown(e, tab.id)}
+                className="w-full h-6 text-sm text-black bg-white"
+                autoFocus
+              />
+            ) : (
+              <div className="truncate flex-1">{tab.name}</div>
+            )}
+            <div className="flex items-center ml-2 space-x-1">
+              <button
+                className="text-gray-500 hover:text-white focus:outline-none"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditClick(tab);
+                }}
+              >
+                <Pencil size={14} />
+              </button>
+              <button
+                className="text-gray-500 hover:text-white focus:outline-none"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTabClose(tab.id);
+                }}
+              >
+                <X size={14} />
+              </button>
+            </div>
           </div>
         ))}
       </div>

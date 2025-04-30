@@ -4,9 +4,15 @@ interface TabContentProps {
   tabId: string;
   content: string;
   onChange: (content: string) => void;
+  isActive: boolean; // New prop to indicate if the tab is active
 }
 
-export const TabContent = ({ tabId, content, onChange }: TabContentProps) => {
+export const TabContent = ({
+  tabId,
+  content,
+  onChange,
+  isActive,
+}: TabContentProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
 
   // Function to move cursor to the end
@@ -42,10 +48,12 @@ export const TabContent = ({ tabId, content, onChange }: TabContentProps) => {
 
     // Make the editor editable
     editor.contentEditable = "true";
-    editor.focus();
 
-    // Move cursor to the end
-    moveCursorToEnd(editor);
+    // Only focus and move cursor for active tab
+    if (isActive) {
+      editor.focus();
+      moveCursorToEnd(editor);
+    }
 
     // Handle input events
     const handleInput = () => {
@@ -68,9 +76,9 @@ export const TabContent = ({ tabId, content, onChange }: TabContentProps) => {
     return () => {
       editor.removeEventListener("input", handleInput);
     };
-  }, [tabId, onChange]);
+  }, [tabId, onChange, isActive]);
 
-  // Update editor content when content prop changes (e.g., from Socket.IO)
+  // Update editor content when content prop changes
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor || editor.textContent === content) return;
@@ -83,9 +91,11 @@ export const TabContent = ({ tabId, content, onChange }: TabContentProps) => {
     );
     editor.textContent = content;
 
-    // Move cursor to the end
-    moveCursorToEnd(editor);
-  }, [content, tabId]);
+    // Only move cursor for active tab
+    if (isActive) {
+      moveCursorToEnd(editor);
+    }
+  }, [content, tabId, isActive]);
 
   return (
     <div className="h-full flex flex-col dir-ltr text-left" lang="en" dir="ltr">
